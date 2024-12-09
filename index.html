@@ -13,9 +13,9 @@
         padding: 20px;
       }
       #video,
-      #canvas,
       #photo {
         width: 100%;
+        max-width: 400px;
         margin-bottom: 10px;
       }
       button {
@@ -23,6 +23,7 @@
         width: 100%;
         padding: 10px;
         margin-bottom: 10px;
+        font-size: 16px;
       }
       #result {
         margin-top: 20px;
@@ -33,17 +34,15 @@
   </head>
   <body>
     <h1>ID Karta Skaneri</h1>
-    <video id="video" autoplay playsinline></video>
-    <button id="startCamera">Kamerani yoqish</button>
-    <button id="capturePhoto">Rasmga olish</button>
-    <canvas id="canvas" style="display: none"></canvas>
+    <video id="video" autoplay playsinline style="display: none"></video>
     <img id="photo" style="display: none" />
-    <button id="processImage">Rasmni qayta ishlash</button>
+    <button id="startCamera">Kamerani yoqish</button>
+    <button id="capturePhoto" disabled>Rasmga olish</button>
+    <button id="processImage" disabled>Rasmni qayta ishlash</button>
     <div id="result"></div>
 
     <script>
       const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
       const photo = document.getElementById("photo");
       const startButton = document.getElementById("startCamera");
       const captureButton = document.getElementById("capturePhoto");
@@ -54,9 +53,16 @@
       startButton.addEventListener("click", async () => {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
           });
           video.srcObject = stream;
+          video.style.display = "block";
+          startButton.style.display = "none";
+          captureButton.disabled = false;
         } catch (err) {
           console.error("Kamerani yoqishda xatolik:", err);
           alert(
@@ -66,6 +72,7 @@
       });
 
       captureButton.addEventListener("click", () => {
+        const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video, 0, 0);
@@ -75,6 +82,8 @@
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
         }
+        processButton.disabled = false;
+        captureButton.disabled = true;
       });
 
       processButton.addEventListener("click", async () => {
@@ -84,17 +93,19 @@
         }
 
         resultDiv.innerHTML = "Rasm qayta ishlanmoqda...";
+        processButton.disabled = true;
 
         try {
           const {
             data: { text },
-          } = await Tesseract.recognize(photo.src, "uzb");
+          } = await Tesseract.recognize(photo.src, "uzb+eng");
+
+          console.log("OCR natijasi:", text); // Debugging uchun
 
           const name = text.match(/Ism:?\s*([^\n]+)/i)?.[1];
           const surname = text.match(/Familiya:?\s*([^\n]+)/i)?.[1];
           const birthDate =
-            text.match(/Tug['']ilgan sana:?\s*([^\n]+)/i)?.[1] || "Topilmadi";
-
+            text.match(/Tug['']ilgan sana:?\s*([0-9.]+)/i)?.[1] || "Topilmadi";
           resultDiv.innerHTML = `
                   <h2>Natija:</h2>
                   <p><strong>Ism:</strong> ${name}</p>
@@ -105,6 +116,10 @@
           console.error("Rasmni qayta ishlashda xatolik:", error);
           resultDiv.innerHTML =
             "Rasmni qayta ishlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.";
+        } finally {
+          processButton.disabled = false;
+          startButton.style.display = "block";
+          captureButton.disabled = true;
         }
       });
     </script>
