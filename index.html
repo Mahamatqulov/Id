@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ID Kartani O'qish</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>ID Kartani O'qish</h1>
+    <video id="video" autoplay></video>
+    <canvas id="canvas" width="360" height="480" style="display: none"></canvas>
+    <button id="captureBtn" onclick="captureAndProcess()">
+      Rasm Olish va Word Yaratish
+    </button>
+    <script src="libs/tesseract.min.js"></script>
+    <script src="libs/docx.min.js"></script>
+    <script src="libs/FileSaver.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
