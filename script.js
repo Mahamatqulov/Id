@@ -1,3 +1,5 @@
+import Tesseract from "tesseract.js";
+
 // Kamerani ochish
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
