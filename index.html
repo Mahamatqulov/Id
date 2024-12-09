@@ -1,25 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ID Kartani O'qish</title>
-    <link rel="stylesheet" href="style.css" />
+    <title>ID Karta Skaneri</title>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      #video,
+      #canvas,
+      #photo {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      #result {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+      }
+    </style>
   </head>
   <body>
-    <h1>ID Kartani O'qish</h1>
-    <video id="video" autoplay></video>
-    <canvas id="canvas" width="360" height="480" style="display: none"></canvas>
-    <button id="captureBtn" onclick="captureAndProcess()">
-      Rasm Olish va Word Yaratish
-    </button>
-    <!-- Tesseract.js (OCR uchun) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/2.1.1/tesseract.min.js"></script>
+    <h1>ID Karta Skaneri</h1>
+    <video id="video" autoplay playsinline></video>
+    <button id="startCamera">Kamerani yoqish</button>
+    <button id="capturePhoto">Rasmga olish</button>
+    <canvas id="canvas" style="display: none"></canvas>
+    <img id="photo" style="display: none" />
+    <button id="processImage">Rasmni qayta ishlash</button>
+    <div id="result"></div>
 
-    <!-- docx.js (Word fayllar uchun) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const photo = document.getElementById("photo");
+      const startButton = document.getElementById("startCamera");
+      const captureButton = document.getElementById("capturePhoto");
+      const processButton = document.getElementById("processImage");
+      const resultDiv = document.getElementById("result");
+      let stream;
 
-    <!-- FileSaver.js (Faylni yuklash uchun) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+      startButton.addEventListener("click", async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+          video.srcObject = stream;
+        } catch (err) {
+          console.error("Kamerani yoqishda xatolik:", err);
+          alert(
+            "Kamerani yoqishda xatolik yuz berdi. Iltimos, kameraga ruxsat berganingizni tekshiring."
+          );
+        }
+      });
+
+      captureButton.addEventListener("click", () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+        photo.src = canvas.toDataURL("image/jpeg");
+        photo.style.display = "block";
+        video.style.display = "none";
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      });
+
+      processButton.addEventListener("click", async () => {
+        if (!photo.src) {
+          alert("Iltimos, avval rasmga oling");
+          return;
+        }
+
+        resultDiv.innerHTML = "Rasm qayta ishlanmoqda...";
+
+        try {
+          const {
+            data: { text },
+          } = await Tesseract.recognize(photo.src, "uzb");
+
+          const name = text.match(/Ism:?\s*([^\n]+)/i)?.[1];
+          const surname = text.match(/Familiya:?\s*([^\n]+)/i)?.[1];
+          const birthDate =
+            text.match(/Tug['']ilgan sana:?\s*([^\n]+)/i)?.[1] || "Topilmadi";
+
+          resultDiv.innerHTML = `
+                  <h2>Natija:</h2>
+                  <p><strong>Ism:</strong> ${name}</p>
+                  <p><strong>Familiya:</strong> ${surname}</p>
+                  <p><strong>Tug'ilgan sana:</strong> ${birthDate}</p>
+              `;
+        } catch (error) {
+          console.error("Rasmni qayta ishlashda xatolik:", error);
+          resultDiv.innerHTML =
+            "Rasmni qayta ishlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.";
+        }
+      });
+    </script>
   </body>
 </html>
